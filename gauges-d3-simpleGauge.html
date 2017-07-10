@@ -1,0 +1,300 @@
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+<!-- <p> This is a D3.JS Gauge</p> -->
+<svg id='gauge'></svg>
+
+<script>
+/**
+ * Gauge Chart
+ */
+gauge = function(container, configuration)
+{
+	var that = this;
+	that.sectorColorFn = function(tick){
+		var cfg = this;
+		var min=cfg.lowSector.split(',')[0];
+		var max=cfg.lowSector.split(',')[1];
+		if(tick>=min&&tick<=max)
+    {
+			return '#e92213';//red
+	  }
+		min=cfg.midSector.split(',')[0];
+		max=cfg.midSector.split(',')[1];
+		if(tick>=min&&tick<=max)
+    {
+			return '#FFFE35';//yellow
+		}
+		min=cfg.highSector.split(',')[0];
+		max=cfg.highSector.split(',')[1];
+		if(tick>=min&&tick<=max)
+    {
+			return '#3EE91A';//green
+		}
+		return 'none';
+	}
+	that.setMinMaxValue=function(cfg){
+		var min =parseFloat(cfg.minValue);
+		var max =parseFloat(cfg.maxValue);
+		var sectors=[parseFloat(cfg.lowSector.split(',')[0]),
+		             parseFloat(cfg.lowSector.split(',')[1]),
+		            		 parseFloat(cfg.midSector.split(',')[0]),
+		            				 parseFloat(cfg.midSector.split(',')[1]),
+		            						 parseFloat(cfg.highSector.split(',')[0]),
+		            								 parseFloat(cfg.highSector.split(',')[1])];
+		for(var i=0;i<sectors.length;i++){
+			if(sectors[i]<=min){
+				min=sectors[i];
+			}
+			if(sectors[i]>=max){
+				max=sectors[i];
+			}
+		}
+		cfg.minValue=min;
+		cfg.maxValue=max;
+
+		cfg.majorTicks=(max-min)/10;
+
+		return cfg;
+	}
+	that.getSize=function (height,width){
+		return (height<width)?height+((width-height)/2):width+((height-width)/2);
+	}
+	config = {
+		/*size						: 200,
+		clipWidth					: 200,
+		clipHeight					: 110,
+		ringWidth					: 20,*/
+		size						: that.getSize(configuration.clipHeight, configuration.clipWidth),
+		clipWidth					: configuration.clipWidth,
+		clipHeight					: configuration.clipHeight,
+		ringWidth					: configuration.ringWidth,
+		ringInset					: 20,
+		pointerWidth				: 4,
+		pointerTailLength			: 8,
+		pointerHeadLengthPercent	: 1.01,
+
+		/*minValue					: 0,//grab smallest value from sectors
+		maxValue					: 100,//grab largest value from sectors
+		lowSector					:'0,30',//red
+		midSector					:'30,60',//yellow
+		highSector					:'60,100',//green
+*/
+
+		margin						: configuration.margin,
+		minAngle					: -90,
+		maxAngle					: 90,
+
+		transitionMs				: configuration.transitionMs||4000,
+
+		majorTicks					: 10,//(max-min) divide by 10
+
+		minValue					: 0||configuration.lowSector.split(',')[0],//grab smallest value from sectors
+		maxValue					: 100||configuration.highSector.split(',')[1],//grab largest value from sectors
+		lowSector					:configuration.lowSector,//red
+		midSector					:configuration.midSector,//yellow
+		highSector					:configuration.highSector,//green
+		value						: configuration.value,  //This is where data has to be inserted. Just edit the Value here
+
+		labelFormat					: d3.format(',g'),
+		labels:function(d){
+			if($.inArray(d, that.tickValues)>-1){//only display major ticks instead of all datas
+				return config.labelFormat(d);
+			}
+		},
+		labelInset					: 10,
+
+		sectorColorFn				:that.sectorColorFn,
+	};
+
+	config=that.setMinMaxValue(config);
+	for(prop in config){
+		that[prop]=config[prop];
+	}
+	if(configuration.goal){
+		var goal = parseFloat(configuration.goal);
+		var upperLowSector = goal-goal*10/100;
+		var maxValue=100;//default 100
+		if(upperLowSector>0&&upperLowSector<10){
+			maxValue=10;
+		}else if(upperLowSector>100&&upperLowSector<1000){
+			maxValue=1000;
+		}
+
+		that.lowSector="0,"+upperLowSector;
+		that.midSector=upperLowSector+","+goal;
+		that.highSector=goal+","+maxValue;
+	}
+	var range = undefined;
+	var r = undefined;
+	var pointerHeadLength = undefined;
+	var value = 0;
+
+	var svg = undefined;
+	var arc = undefined;
+	var scale = undefined;
+	var ticks = undefined;
+	var tickValues = undefined;
+	var tickData = undefined;
+	var pointer = undefined;
+
+	var donut = d3.layout.pie();
+
+	function deg2rad(deg) {
+		return deg * Math.PI / 180;
+	}
+
+	function newAngle(d) {
+		var ratio = scale(d);
+		var newAngle = config.minAngle + (ratio * range);
+		return newAngle;
+	}
+
+	function configure() {
+
+		that.size=that.getSize(that.clipHeight, that.clipWidth);
+		that.ringWidth=that.size*0.2;
+		range = that.maxAngle - that.minAngle;
+		r = that.size / 2;
+		that.pointerHeadLength = Math.round(r * that.pointerHeadLengthPercent);
+
+		// a linear scale that maps domain values to a percent from 0..1
+		scale = d3.scale.linear()
+			.range([0,1])
+			.domain([that.minValue, that.maxValue]);
+
+		that.ticks = scale.ticks(that.maxValue);
+		that.tickValues=scale.ticks(that.majorTicks);
+		that.tickData = d3.range(that.maxValue).map(function() {return 1/that.maxValue;});
+
+		arc = d3.svg.arc()
+			.innerRadius(r - that.ringWidth - that.ringInset)
+			.outerRadius(r - that.ringInset)
+			.startAngle(function(d, i) {
+				var ratio = d * i;
+				return deg2rad(that.minAngle + (ratio * range));
+			})
+			.endAngle(function(d, i) {
+				var ratio = d * (i+1);
+				return deg2rad(that.minAngle + (ratio * range));
+			});
+	}
+
+	function centerTranslation() {
+		return 'translate('+r +','+ r +')';
+	}
+
+	function isRendered() {
+		return (svg !== undefined);
+	}
+
+	function render() {
+		if(d3.select(container).selectAll('.gauge')){
+			d3.select(container).selectAll('.gauge').remove()
+		}
+		svg = d3.select(container)
+		.attr('width', that.clipWidth+that.margin.left)
+		.attr('height', that.clipHeight)
+		.append('svg:svg')
+		.attr('class', 'gauge')
+		.attr('width', that.clipWidth)
+		.attr('height', that.clipHeight)
+		.attr('x',that.margin.left)
+    .attr('y',that.margin.top);
+
+		var centerTx = centerTranslation();
+
+		var arcs = svg.append('g')
+				.attr('class', 'arc')
+				.attr('transform', centerTx);
+
+		arcs.selectAll('path')
+				.data(that.tickData)//populate the section of the dial
+			.enter().append('path')
+				.attr('fill', function(d, i) {
+					/*return config.arcColorFn(d * i);*/
+					return that.sectorColorFn(that.ticks[i+1]);//fill in all the colors in the dial section
+				})
+				.attr('d', arc);
+
+		//appending gauge ticks
+		var lg = svg.append('g')
+				.attr('class', 'label')
+				.attr('transform', centerTx);
+		lg.selectAll('text')
+				.data(that.ticks)
+			.enter().append('text')
+				.attr('transform', function(d) {//this portion rotate and place the ticks at the correct position surrounding the gauge
+					if($.inArray(d, that.tickValues)>-1){//rotate only the displayed majorTicks
+						var ratio = scale(d);
+						var newAngle = that.minAngle + (ratio * range);
+						return 'rotate(' +newAngle +') translate(0,' +(that.labelInset - r) +')';
+					}
+				})
+				.text(that.labels);
+
+		//create the gauge needle that point to the value
+		var lineData = [ [that.pointerWidth / 2, 0],
+						[0, -that.pointerHeadLength],
+						[-(that.pointerWidth / 2), 0],
+						[0, that.pointerTailLength],
+						[that.pointerWidth / 2, 0] ];
+		var pointerLine = d3.svg.line().interpolate('monotone');
+		var pg = svg.append('g').data([lineData])
+				.attr('class', 'pointer')
+				.attr('transform', centerTx);
+
+		pointer = pg.append('path')
+			.attr('d', pointerLine/*function(d) { return pointerLine(d) +'Z';}*/ )
+			.attr('transform', 'rotate(' +that.minAngle +')');
+
+		update(that.value === undefined ? 0 : that.value);
+	}
+	function update() {
+		/*if ( newConfiguration  !== undefined) {
+			configure(newConfiguration);
+		}*/
+		var ratio = scale(that.value);
+		var newAngle = that.minAngle + (ratio * range);
+		pointer.transition()
+			.duration(that.transitionMs)
+			.ease('elastic')
+			.attr('transform', 'rotate(' +newAngle +')');
+	}
+
+	function height(height){
+		that.clipHeight=height;
+		that.configure();
+		that.render();
+	}
+
+	function width(width){
+		that.clipWidth=width;
+		that.configure();
+		that.render();
+	}
+
+	configure();
+
+	that.configure = configure;
+	that.isRendered = isRendered;
+	that.render = render;
+	that.update = update;
+	that.height = height;
+	that.width = width;
+	return that;
+};
+
+var gaugeOptions = {
+			 margin: { top : 80, left : 70},
+			clipWidth: 300,
+			clipHeight:  300,
+			lowSector:'0,42.0',//red
+			midSector:'42.0,63',//yellow
+			highSector:'63,100',//green
+			value:82,
+	};
+
+  var gaugeChart=gauge('#gauge',gaugeOptions);
+  gaugeChart.render();
+</script>
