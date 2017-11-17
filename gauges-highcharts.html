@@ -4,15 +4,20 @@
 <script src="http://code.highcharts.com/highcharts-more.js"></script>
 <script src="http://code.highcharts.com/modules/solid-gauge.js"></script>
 
-<div id="container" style="height: 300px;">
-</div>
-
+<div id="container" style="height: 180px; border-style: dotted; width: 200px;"></div>
 
 <script type="text/javascript">
+/*
+If Height and Width of the Container is increased, then you will need to adjust the Gauge
+This can be done by Changing the following parameters:
+In Highcharts.chart('container'){}
+1. parameter 'marginTop' from chart{} will need to be changed
+2. parameter 'y' from subtitle{} will need to be changed
+*/
 
 $(function() {
 
-  var rawData = 73,	//Data comes here
+  var rawData = 71,	//Data comes here
     data = getData(rawData);
 
   function getData(rawData)
@@ -31,7 +36,12 @@ $(function() {
   Highcharts.chart('container', {
     chart: {
       type: 'solidgauge',
-      marginTop: 10
+      marginTop: 20
+    },
+
+    credits:
+    {
+      enabled: false
     },
 
     title: {
@@ -44,7 +54,7 @@ $(function() {
       style: {
         'font-size': '60px'
       },
-      y: 200,
+      y: 140,
       zIndex: 7
     },
 
