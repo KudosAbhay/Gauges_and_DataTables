@@ -1,0 +1,152 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.12/highcharts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.12/js/modules/series-label.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.12/js/modules/exporting.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.12/js/modules/export-data.js"></script>
+
+<div id="container" style="min-width: 400px; height: 400px; margin: 0 auto"></div>
+
+<script>
+    var div_Triple_Chartid = "container";
+    var data = {
+        DateTimeArray: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        tssArray: [7.0, 6.9, 9.5, 14.5, 18.2, 21.5, 25.2, 26.5, 23.3, 18.3, 13.9, 9.6],
+        milkArray: [1016, 1016, 1015.9, 1015.5, 1012.3, 1009.5, 1009.6, 1010.2, 1013.1, 1016.9, 1018.2, 1016.7],
+        vol_LtrArray: [49.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]
+    };
+    var Triple_Chart_name = "Milk &amp; TSS Temperature vs. Milk Volume";
+    var Triple_Chart_seriesName1 = "TSS Temperature";
+    var milk1_naming = "Milk Temperature";
+    var vol_naming = "Milk Volume";
+    var suffix1 = " °C";
+    var suffix2 = " °C";
+    var suffix3 = " Ltr";
+    var titleForYAxis_TSS_Temp = Triple_Chart_seriesName1;
+    var titleForYAxis_Milk_Temp = milk1_naming;
+    var titleForYAxis_Vol = vol_naming;
+
+     drawVolChart(div_Triple_Chartid, 
+        data.DateTimeArray, data.tssArray, data.milkArray, data.vol_LtrArray,
+        Triple_Chart_name, 
+        Triple_Chart_seriesName1, milk1_naming, vol_naming,
+        suffix1, suffix2, suffix3,
+        titleForYAxis_TSS_Temp, titleForYAxis_Milk_Temp, titleForYAxis_Vol);
+
+function drawVolChart(incoming_chartID,
+    incoming_DateTimeArray, incoming_tssArray, incoming_milkArray, incoming_vol_LtrArray,
+    incoming_Triple_Chart_Name,
+    incoming_Chart_seriesName1, incoming_milk1_naming, incoming_vol_naming,
+    incoming_suffix1, incoming_suffix2, incoming_suffix3,
+    incoming_titleForYAxis_TSS_Temp, incoming_titleForYAxis_Milk_Temp, incoming_titleForYAxis_Vol ){
+ 
+        Highcharts.chart(incoming_chartID, {
+            chart: {
+                zoomType: 'xy'
+            },
+            title: {
+                text: incoming_Triple_Chart_Name
+            },
+            subtitle: {
+                // text: 'Source: WorldClimate.com'
+            },
+            credits: {
+                enabled: false
+            },
+            exporting: {
+                enabled: false
+            },
+            xAxis: [{
+                categories: incoming_DateTimeArray,
+                crosshair: true
+            }],
+            yAxis: [{ // Primary yAxis
+                labels: {
+                    format: '{value}'+incoming_suffix1,
+                    style: {
+                        color: Highcharts.getOptions().colors[2]
+                    }
+                },
+                title: {
+                    text: incoming_titleForYAxis_TSS_Temp,
+                    style: {
+                        color: Highcharts.getOptions().colors[2]
+                    }
+                },
+                opposite: true
+
+            }, { // Secondary yAxis
+                gridLineWidth: 0,
+                title: {
+                    text: incoming_titleForYAxis_Vol,
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                labels: {
+                    format: '{value}'+incoming_suffix3,
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                }
+
+            }, { // Tertiary yAxis
+                gridLineWidth: 0,
+                title: {
+                    text: incoming_titleForYAxis_Milk_Temp,
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                labels: {
+                    format: '{value}'+incoming_suffix2,
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                opposite: true
+            }],
+            tooltip: {
+                shared: true
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'left',
+                x: 80,
+                verticalAlign: 'top',
+                y: 55,
+                floating: true,
+                backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
+            },
+            series: [{
+                name: incoming_vol_naming,
+                type: 'column',
+                yAxis: 1,
+                data: incoming_vol_LtrArray,
+                tooltip: {
+                    valueSuffix: incoming_suffix3
+                }
+
+            }, {
+                name: incoming_milk1_naming,
+                type: 'spline',
+                yAxis: 2,
+                data: incoming_milkArray,
+                marker: {
+                    enabled: false
+                },
+                dashStyle: 'shortdot',
+                tooltip: {
+                    valueSuffix: incoming_suffix2
+                }
+
+            }, {
+                name: incoming_Chart_seriesName1,
+                type: 'spline',
+                data: incoming_tssArray,
+                tooltip: {
+                    valueSuffix: incoming_suffix1
+                }
+            }]
+    });
+} // drawVolChart() ends here
+</script>
